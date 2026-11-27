@@ -1,0 +1,9 @@
+build/
+work/
+transcript
+*.wlf
+*.ghw
+.Xil/
+xsim.dir/
+*.jou
+*.log

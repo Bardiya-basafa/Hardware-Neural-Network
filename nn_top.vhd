@@ -10,7 +10,8 @@
 --
 -- Extending the network: add NN_xxx sizes and Lk_WEIGHTS / Lk_BIASES to
 -- weights_pkg, then add one more "layer" instance and chain it (start of the
--- next layer = done of the previous one, x_in = y_out of the previous one).
+-- next layer = done of the previous one, x_in = y_out of the previous one,
+-- w_in / b_in = Lk_WEIGHTS / Lk_BIASES).
 --------------------------------------------------------------------------------
 library ieee;
 use ieee.std_logic_1164.all;
@@ -38,8 +39,6 @@ begin
     generic map (
       N_INPUTS   => NN_INPUTS,
       N_NEURONS  => NN_HIDDEN,
-      WEIGHTS    => L1_WEIGHTS,
-      BIASES     => L1_BIASES,
       ACTIVATION => "RELU"
     )
     port map (
@@ -47,6 +46,8 @@ begin
       rst   => rst,
       start => start,
       x_in  => x_in,
+      w_in  => L1_WEIGHTS,
+      b_in  => L1_BIASES,
       y_out => l1_out,
       done  => l1_done
     );
@@ -55,8 +56,6 @@ begin
     generic map (
       N_INPUTS   => NN_HIDDEN,
       N_NEURONS  => NN_OUTPUTS,
-      WEIGHTS    => L2_WEIGHTS,
-      BIASES     => L2_BIASES,
       ACTIVATION => "RELU"
     )
     port map (
@@ -64,6 +63,8 @@ begin
       rst   => rst,
       start => l1_done,
       x_in  => l1_out,
+      w_in  => L2_WEIGHTS,
+      b_in  => L2_BIASES,
       y_out => y_out,
       done  => done
     );

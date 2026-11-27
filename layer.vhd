@@ -6,11 +6,13 @@
 --
 -- Generics
 --   N_INPUTS, N_NEURONS : layer size
---   WEIGHTS : flattened weights, WEIGHTS(neuron * N_INPUTS + input), index from 0
---   BIASES  : one bias per neuron, index from 0
 --   ACTIVATION : "RELU" or "SIGMOID"
 --
 -- Interface
+--   w_in  : flattened weights, w_in(neuron * N_INPUTS + input), index from 0
+--   b_in  : one bias per neuron, index from 0
+--           (ports, not generics, so the trainer can change them at run time;
+--            when driven by constants - as in nn_top - synthesis folds them)
 --   start : one-clock pulse while idle; x_in is sampled on that clock
 --   done  : one-clock pulse, y_out is valid while done = '1' (and afterwards
 --           until the next result is produced)
@@ -25,8 +27,6 @@ entity layer is
   generic (
     N_INPUTS   : positive;
     N_NEURONS  : positive;
-    WEIGHTS    : data_array_t;
-    BIASES     : data_array_t;
     ACTIVATION : string := "RELU"
   );
   port (
@@ -34,6 +34,8 @@ entity layer is
     rst   : in  std_logic;
     start : in  std_logic;
     x_in  : in  data_array_t(0 to N_INPUTS - 1);
+    w_in  : in  data_array_t(0 to N_INPUTS * N_NEURONS - 1);
+    b_in  : in  data_array_t(0 to N_NEURONS - 1);
     y_out : out data_array_t(0 to N_NEURONS - 1);
     done  : out std_logic
   );
@@ -56,13 +58,6 @@ architecture rtl of layer is
 
 begin
 
-  assert WEIGHTS'length = N_INPUTS * N_NEURONS
-    report "layer: WEIGHTS must have N_INPUTS * N_NEURONS entries"
-    severity failure;
-  assert BIASES'length = N_NEURONS
-    report "layer: BIASES must have N_NEURONS entries"
-    severity failure;
-
   ---------------------------------------------------------------------------
   -- Control signals for the neurons (derived from the layer FSM)
   ---------------------------------------------------------------------------
@@ -75,7 +70,7 @@ begin
   -- Neurons
   ---------------------------------------------------------------------------
   g_neurons : for j in 0 to N_NEURONS - 1 generate
-    w_sel(j) <= WEIGHTS(WEIGHTS'low + j * N_INPUTS + idx);
+    w_sel(j) <= w_in(j * N_INPUTS + idx);
 
     u_neuron : entity work.neuron
       generic map (ACTIVATION => ACTIVATION)
@@ -87,7 +82,7 @@ begin
         x_last  => x_last,
         x_in    => x_sel,
         w_in    => w_sel(j),
-        bias    => BIASES(BIASES'low + j),
+        bias    => b_in(j),
         y_out   => y_out(j),
         done    => n_done(j)
       );
